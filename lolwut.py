@@ -17,6 +17,8 @@ def parse_args():
     parser.add_argument('string_src', type=str, help="a .txt file containing strings to overlay on images")
     parser.add_argument('font', type=str, help="a .ttf file containing font to use")
     parser.add_argument('output_dir', type=str, help="output dir of script")
+    parser.add_argument('-width', type=int, help="optional - force image resize to use this width")
+    parser.add_argument('-height', type=int, help="optional - force image resize to use this height")
     parser.parse_args()
 
     args = parser.parse_args()
@@ -91,15 +93,35 @@ def main():
     source_strings = parse_strings(args.string_src)
     out_count = 0
 
-    font_size = 52
-
+    #build a list of images to use that ensures that no image is duplicated until all have been used at least once
+    image_indices = []
     for i in range(0, len(source_strings)):
-        img_idx = random.randint(0,len(source_images)-1)
+        if i < len(source_images)-1:
+            image_indices.append(i)
+        else:
+            image_indices.append(random.randint(0,len(source_images)-1))
+
+    random.shuffle(image_indices)
+
+    font_size = 52
+    for i in range(0, len(source_strings)):
+        img_idx = i #random.randint(0,len(source_images)-1)
         img = Image.open(args.image_dir+"/"+source_images[img_idx])
         font = ImageFont.truetype(args.font, font_size)
         string_pair = source_strings[i]
+
+        #handle image resize here - it's not optimal since we'll be resizing unnecessarily, but it's easy
+        if (args.width != None or args.height != None):
+            target_w = img.width if args.width == None else args.width
+            target_h = img.height if args.height == None else args.height
+
+            if target_h < img.height or target_w < img.width:
+                img = img.resize((target_w, target_h), Image.LANCZOS)
+            else:
+                img = img.resize((target_w, target_h), Image.BILINEAR)
+
         draw = ImageDraw.Draw(img)
-        
+
         #draw top line, centered, wrap centered if string is too long. 
         #shrink text if string won't fit on two lines
         line_counts = [get_linecount(string_pair[0], draw, img, font), get_linecount(string_pair[1], draw, img, font)]
