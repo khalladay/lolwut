@@ -130,7 +130,7 @@ def main():
                 if last_cut != 0:
                     last_cut +=1
 
-                _, h = draw.textsize(string_pair[s], font)
+                w, h = draw.textsize(string_pair[s][last_cut:cut_point], font)
                 y_val = 0
 
                 if s == 0:
@@ -138,7 +138,9 @@ def main():
                 else: # for bottom text, the first line has to be the highest on the image
                     y_val = img.height - Y_PADDING - (h+LINE_PADDING)*(line_counts[s]-i)
 
-                draw_outlined_text(X_PADDING,y_val, string_pair[s][last_cut:cut_point], draw, font)
+
+                x_val = (img.width/2)-(X_PADDING*2)-(w/2)
+                draw_outlined_text(x_val,y_val, string_pair[s][last_cut:cut_point], draw, font)
                 last_cut = cut_point
         
         img.save(args.output_dir+"/"+"output"+str(out_count)+".jpg")
