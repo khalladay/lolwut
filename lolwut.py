@@ -7,7 +7,7 @@ from PIL import ImageFont
 from PIL import ImageDraw
 
 MAX_LINES = 2
-X_PADDING = 10
+X_PADDING = 0
 Y_PADDING = 10
 LINE_PADDING = 5
 
@@ -61,14 +61,20 @@ def parse_strings(strings_filepath):
 
             trimmed_line = line.replace("\r", "").replace("\n", "").upper()
             
+            if trimmed_line == "_":
+                trimmed_line = " "
+
             if len(top_line) == 0:
                 top_line = trimmed_line
             elif len(bottom_line) == 0:
                 bottom_line = trimmed_line
                 string_pairs.append((top_line, bottom_line))
-            
+                bottom_line = top_line = ""
             line = strings_file.readline()
-    
+
+        if len(top_line) > 0 or len(bottom_line) > 0:
+            string_pairs.append((top_line, bottom_line))
+
     return string_pairs
 
 def draw_outlined_text(x,y, text, img_draw, font):
@@ -78,16 +84,32 @@ def draw_outlined_text(x,y, text, img_draw, font):
     img_draw.text((x+2, y-2), text, (0,0,0),font=font)
     img_draw.text((x,y), text, font=font)
 
-def get_linecount(string, imagedraw, image, font):
-    w, h = imagedraw.textsize(string, font) # measure the size the text will take
-    lc = int(round((w / (image.width-X_PADDING)) + 1))
+def get_raw_linecount(string, imagedraw, image, font):
+    w, _ = imagedraw.textsize(string, font) # measure the size the text will take
+    lc = int(round((w / (image.width-X_PADDING*2)) + 1))
     return lc
 
+def get_linecount(string, imagedraw, image, font):
+    chars_remaining = len(string)
+    cur_cut = 1
+    last_cut = 0
+    lc = 0
+    while chars_remaining > 0:
+        while cur_cut-last_cut < chars_remaining and get_raw_linecount(string[last_cut:cur_cut], imagedraw, image, font) < 2:
+            cur_cut+=1
+
+        while(cur_cut != len(string) and string[cur_cut] != " "):
+            cur_cut -= 1
+
+        chars_remaining -= cur_cut-last_cut
+        last_cut = cur_cut
+        lc+=1
+    return lc        
 
 def main():
     args = parse_args()
 
-    source_images = os.listdir(args.image_dir);
+    source_images = os.listdir(args.image_dir)
     source_images = [x for x in source_images if x.endswith(".jpg") or x.endswith(".jpeg")]
 
     source_strings = parse_strings(args.string_src)
@@ -102,11 +124,11 @@ def main():
             image_indices.append(random.randint(0,len(source_images)-1))
 
     random.shuffle(image_indices)
+    random.shuffle(source_strings)
 
-    font_size = 52
     for i in range(0, len(source_strings)):
-        img_idx = i #random.randint(0,len(source_images)-1)
-        img = Image.open(args.image_dir+"/"+source_images[img_idx])
+        font_size = 52
+        img = Image.open(args.image_dir+"/"+source_images[image_indices[i]])
         font = ImageFont.truetype(args.font, font_size)
         string_pair = source_strings[i]
 
@@ -134,13 +156,15 @@ def main():
 
 
         #split strings into MAX_LINES strings if needed
-        for s in range(0,2):
+        for s in range(0, 2 if len(string_pair[1]) > 0 else 1):
             last_cut = 0
             for i in range(0, line_counts[s]):
                 #figure out where to split string, first get num chars in line
                 # we already know how many lines a string _should_ take, so to get
                 # the cut point we can start by trying to divide by linecount
-                cut_point = last_cut + round(len(string_pair[s]) / line_counts[s])
+                cut_point = 1
+                while (cut_point < len(string_pair[s]) and get_linecount(string_pair[s][last_cut:cut_point], draw, img, font) < 2):
+                    cut_point+=1
 
                 #then we need to back up from the cut point to the first whitespace char
                 #to avoid cutting words in half
@@ -168,8 +192,6 @@ def main():
         img.save(args.output_dir+"/"+"output"+str(out_count)+".jpg")
         out_count+=1
     
-
-
 
 if __name__ == "__main__":
     main()
