@@ -102,63 +102,44 @@ def main():
         
         #draw top line, centered, wrap centered if string is too long. 
         #shrink text if string won't fit on two lines
-        top_line_count = get_linecount(string_pair[0], draw, img, font)
-        bottom_line_count = get_linecount(string_pair[1], draw, img, font)
+        line_counts = [get_linecount(string_pair[0], draw, img, font), get_linecount(string_pair[1], draw, img, font)]
 
-        while max(top_line_count, bottom_line_count) > MAX_LINES:
+        while max(line_counts[0], line_counts[1]) > MAX_LINES:
             font_size-=1
             font = ImageFont.truetype(args.font, font_size)
-            top_line_count = get_linecount(string_pair[0], draw, img, font)
-            bottom_line_count = get_linecount(string_pair[1], draw, img, font)
+            line_counts[0] = get_linecount(string_pair[0], draw, img, font)
+            line_counts[1] = get_linecount(string_pair[1], draw, img, font)
 
 
         #split strings into MAX_LINES strings if needed
-        last_cut = 0
-        for i in range(0, top_line_count):
-            #figure out where to split string, first get num chars in line
-            # we already know how many lines a string _should_ take, so to get
-            # the cut point we can start by trying to divide by linecount
-            cut_point = last_cut + round(len(string_pair[0]) / top_line_count)
+        for s in range(0,2):
+            last_cut = 0
+            for i in range(0, line_counts[s]):
+                #figure out where to split string, first get num chars in line
+                # we already know how many lines a string _should_ take, so to get
+                # the cut point we can start by trying to divide by linecount
+                cut_point = last_cut + round(len(string_pair[s]) / line_counts[s])
 
-            #then we need to back up from the cut point to the first whitespace char
-            #to avoid cutting words in half
+                #then we need to back up from the cut point to the first whitespace char
+                #to avoid cutting words in half
+                while(cut_point != len(string_pair[s]) and string_pair[s][cut_point] != " "):
+                    cut_point -= 1
 
-            while(cut_point != len(string_pair[0]) and string_pair[0][cut_point] != " "):
-                cut_point -= 1
+                #if this isn't the first cut, we need to advance the last_cut by 1 to avoid starting a new line
+                #with a space 
+                if last_cut != 0:
+                    last_cut +=1
 
-            #if this isn't the first cut, we need to advance the last_cut by 1 to avoid starting a new line
-            #with a space 
-            if last_cut != 0:
-                last_cut +=1
+                _, h = draw.textsize(string_pair[s], font)
+                y_val = 0
 
-            w, h = draw.textsize(string_pair[0], font)
-            draw_outlined_text(X_PADDING,Y_PADDING+(h+LINE_PADDING)*i, string_pair[0][last_cut:cut_point], draw, font)
-            last_cut = cut_point
+                if s == 0:
+                    y_val = Y_PADDING+(h+LINE_PADDING)*i
+                else: # for bottom text, the first line has to be the highest on the image
+                    y_val = img.height - Y_PADDING - (h+LINE_PADDING)*(line_counts[s]-i)
 
-        last_cut = 0
-        for i in range(0, bottom_line_count):
-            #figure out where to split string, first get num chars in line
-            # we already know how many lines a string _should_ take, so to get
-            # the cut point we can start by trying to divide by linecount
-            cut_point = last_cut + round(len(string_pair[1]) / bottom_line_count)
-
-            #then we need to back up from the cut point to the first whitespace char
-            #to avoid cutting words in half
-
-            while(cut_point != len(string_pair[1]) and string_pair[1][cut_point] != " "):
-                cut_point -= 1
-
-            #if this isn't the first cut, we need to advance the last_cut by 1 to avoid starting a new line
-            #with a space 
-            if last_cut != 0:
-                last_cut +=1
-
-            w, h = draw.textsize(string_pair[1], font)
-
-            #for bottom lines, the first line must the the highest
-            y_val = img.height - Y_PADDING - (h+LINE_PADDING)*(bottom_line_count-i)
-            draw_outlined_text(X_PADDING,y_val, string_pair[1][last_cut:cut_point], draw, font)
-            last_cut = cut_point
+                draw_outlined_text(X_PADDING,y_val, string_pair[s][last_cut:cut_point], draw, font)
+                last_cut = cut_point
         
         img.save(args.output_dir+"/"+"output"+str(out_count)+".jpg")
         out_count+=1
