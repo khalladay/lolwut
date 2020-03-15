@@ -1,0 +1,9 @@
+Images sources:
+
+manatee1.jpg:
+source: https://pixnio.com/fauna-animals/manatee-pictures/underwater-photography-of-mammal-manatee
+license: CC0
+
+manatee2.jpg:
+source: https://pixnio.com/fauna-animals/manatee-pictures/two-west-indian-manatee-trichechus-manatus-nuzzling-noses-together
+license: CC0
