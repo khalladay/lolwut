@@ -189,7 +189,7 @@ def main():
                 draw_outlined_text(x_val,y_val, string_pair[s][last_cut:cut_point], draw, font)
                 last_cut = cut_point
         
-        img.save(args.output_dir+"/"+"output"+str(out_count)+".jpg")
+        img.save(args.output_dir+"/"+"manatee"+str(out_count)+".jpg")
         out_count+=1
     
 
